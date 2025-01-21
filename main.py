@@ -3,7 +3,7 @@ from Crypto.Random import get_random_bytes
 from PIL import Image
 import matplotlib.pyplot as plt
 import os
-# note - must install pycrptodome, pillow, and matplotlib to run
+# note - must install pycryptodome, pillow, and matplotlib to run
 
 
 # PKCS#7 Padding
