@@ -188,8 +188,36 @@ def display_images(original_file, ecb_file, cbc_file):
         plt.axis("off") #turn off axes because they dont make sense in this context
     plt.show() #render the finished plot
 
-def test():
-    print("test")
+#takes in a string and returns the string with ; and = url encoded
+def urlencode(str):
+    result = b""
+    for byte in str:
+        if byte == 59:
+            result = result + b"%3B"
+        elif byte == 61:
+            result = result + b"%3D"
+        else:
+            result = result + chr(byte).encode("utf-8")
+
+    return result
+
+#takes in a AES key and initiation vector
+#asks user for input string and returns CBC encrypted ciphertext
+def submit(AESkey, initvec):
+    prepend = b"userid=456; userdata="
+    append = b";session-id=31337"
+    userinput = input("Enter a string: ")
+    combined = prepend + urlencode(userinput.encode("utf-8")) + append
+    padded = pkcs7_pad(combined)
+    print(padded)
+    return cbc_encrypt(padded, AESkey, initvec)
+
+def verify(cyphertext, AESkey, initvec):
+    decrypted = cbc_decrypt(cyphertext, AESkey, initvec)
+    print(decrypted)
+    return b";admin=true;" in decrypted
+
+
 # Main Function
 if __name__ == "__main__":
     # Input Image
@@ -209,3 +237,7 @@ if __name__ == "__main__":
 
     # Display Results
     display_images(original_file, ecb_file, cbc_file)
+
+    cyphertext = submit(key, iv)
+    print(cyphertext)
+    print(verify(cyphertext, key, iv))
