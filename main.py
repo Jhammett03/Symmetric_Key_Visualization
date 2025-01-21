@@ -188,7 +188,8 @@ def display_images(original_file, ecb_file, cbc_file):
         plt.axis("off") #turn off axes because they dont make sense in this context
     plt.show() #render the finished plot
 
-
+def test():
+    print("test")
 # Main Function
 if __name__ == "__main__":
     # Input Image
