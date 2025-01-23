@@ -75,22 +75,18 @@ def cbc_encrypt(data, key, iv):
 
 
 # CBC Decryption
-def cbc_decrypt(data, key, iv):
-    #create AES cipher in ECB mode
-    cipher = AES.new(key, AES.MODE_ECB)
-    #create byte string
+def cbc_decrypt(ciphertext, key, iv):
+    cipher = AES.new(key, AES.MODE_ECB)  # AES decryption in ECB mode
     decrypted = b""
-    #initial prev_block is the initialization vector
     prev_block = iv
-    #iterate through 16 byte blocks
-    for i in range(0, len(data), 16):
-        block = data[i:i + 16]
-        #decrypt current block
-        decrypted_block = cipher.decrypt(block)
-        # xor the decrypted block with previous block
-        decrypted += bytes(a ^ b for a, b in zip(decrypted_block, prev_block))
-        # set previous block equal to current block
-        prev_block = block
+
+    for i in range(0, len(ciphertext), 16):
+        current_block = ciphertext[i:i + 16]
+        decrypted_block = cipher.decrypt(current_block)
+        plaintext_block = bytes(a ^ b for a, b in zip(decrypted_block, prev_block))
+        decrypted += plaintext_block
+        prev_block = current_block
+
     return decrypted
 
 
@@ -203,19 +199,43 @@ def urlencode(str):
 
 #takes in a AES key and initiation vector
 #asks user for input string and returns CBC encrypted ciphertext
-def submit(AESkey, initvec):
-    prepend = b"userid=456; userdata="
-    append = b";session-id=31337"
-    userinput = input("Enter a string: ")
-    combined = prepend + urlencode(userinput.encode("utf-8")) + append
-    padded = pkcs7_pad(combined)
-    print(padded)
-    return cbc_encrypt(padded, AESkey, initvec)
+def submit(key, iv):
+    user_input = input("Enter a string: ")
+    user_input = user_input.replace("=", "")
+    user_input = user_input.replace(";", "")
+
+    data = "userid=456;userdata=" + user_input + ";session-id=31337"
+    # url encode data's = and ;
+    data = data.replace("=", "%3D")
+    data = data.replace(";", "%3B")
+    data = data.encode("utf-8")
+
+    # pad string to be divisible by 16 byte block size
+    data = pkcs7_pad(data)
+    # encrypt data
+    data = cbc_encrypt(data, key, iv)
+    return data
 
 def verify(cyphertext, AESkey, initvec):
     decrypted = cbc_decrypt(cyphertext, AESkey, initvec)
     print(decrypted)
     return b";admin=true;" in decrypted
+
+
+def modify(data):
+    # Modify the ciphertext to inject ';admin=true;' into the decrypted message
+    # Convert the ciphertext to a mutable bytearray
+    data = bytearray(data)
+
+    # Flip bits at specific locations to inject the target plaintext
+    # Assuming '1111111admin1true1' was the input and ';admin=true;' should be injected
+    # extra 1's in the beginning are to ensure our actual message is contained in one block
+    data[16] ^= ord('1') ^ ord(';')  # Flip to turn '1' into ';'
+    data[22] ^= ord('1') ^ ord('=')  # Flip to turn '1' into '='
+    data[27] ^= ord('1') ^ ord(';')  # Flip to turn '1' into ';'
+    data = bytes(data)
+
+    return data
 
 
 # Main Function
@@ -227,6 +247,21 @@ if __name__ == "__main__":
     key = get_random_bytes(16)
     iv = get_random_bytes(16)
 
+    user_input = "1admin1true1"
+    ciphertext = submit(key, iv)
+
+    # Verify before modification
+    print(f"Ciphertext before modification: {ciphertext}")
+    is_admin = verify(ciphertext, key, iv)
+    print(f"Before modification - Is admin: {is_admin}")
+
+    # Modify the ciphertext
+    modified_ciphertext = modify(ciphertext)
+
+    # Verify after modification
+    is_admin = verify(modified_ciphertext, key, iv)
+    print(f"After modification - Is admin: {is_admin}")
+
     # Encrypt Image in ECB and CBC Modes
     ecb_file = encrypt_image(original_file, "ECB", key)
     cbc_file = encrypt_image(original_file, "CBC", key, iv)
@@ -237,7 +272,3 @@ if __name__ == "__main__":
 
     # Display Results
     display_images(original_file, ecb_file, cbc_file)
-
-    cyphertext = submit(key, iv)
-    print(cyphertext)
-    print(verify(cyphertext, key, iv))
