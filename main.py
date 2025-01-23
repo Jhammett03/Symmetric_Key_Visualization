@@ -228,11 +228,11 @@ def modify(data):
     data = bytearray(data)
 
     # Flip bits at specific locations to inject the target plaintext
-    # Assuming '1111111admin1true1' was the input and ';admin=true;' should be injected
+    # Assuming '///////admin/true/' was the input and ';admin=true;' should be injected
     # extra 1's in the beginning are to ensure our actual message is contained in one block
-    data[16] ^= ord('1') ^ ord(';')  # Flip to turn '1' into ';'
-    data[22] ^= ord('1') ^ ord('=')  # Flip to turn '1' into '='
-    data[27] ^= ord('1') ^ ord(';')  # Flip to turn '1' into ';'
+    data[16] ^= ord('/') ^ ord(';')  # Flip to turn '1' into ';'
+    data[22] ^= ord('/') ^ ord('=')  # Flip to turn '1' into '='
+    data[27] ^= ord('/') ^ ord(';')  # Flip to turn '1' into ';'
     data = bytes(data)
 
     return data
